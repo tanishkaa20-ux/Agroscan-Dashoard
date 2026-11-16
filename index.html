@@ -1,0 +1,983 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroScan | MLOps Dashboard</title>
+<style>
+:root {
+  --green:#174b35; --green2:#26734e; --light:#eaf3ed;
+  --bg:#f5f7f4; --white:#fff; --text:#1c3026;
+  --muted:#7a8a80; --border:#e4ebe5; --red:#c64b4b;
+}
+body{
+  margin:0;
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  background:
+    radial-gradient(ellipse at 10% 10%, rgba(164,196,135,.18), transparent 35%),
+    radial-gradient(ellipse at 90% 85%, rgba(193,213,166,.20), transparent 35%),
+    linear-gradient(135deg,#f7f8ef,#edf4e9);
+  background-attachment:fixed;
+  color:var(--text);
+}
+.layout{display:flex;min-height:100vh}
+:root{
+  --sidebar-width:245px;
+}
+
+.sidebar{
+  width:var(--sidebar-width);
+  background:#123c2b;
+  color:white;
+  padding:27px 17px;
+  position:fixed;
+  inset:0 auto 0 0;
+  transition:width .2s ease;
+  overflow-y:auto;
+}
+
+.main{
+  margin-left:var(--sidebar-width);
+  width:calc(100% - var(--sidebar-width));
+  padding:30px 38px;
+  transition:margin-left .2s ease,width .2s ease;
+}
+.brand{font-size:23px;font-weight:800;padding:5px 12px 35px}
+.brand span{color:#a8d6ae}
+.tag{font-size:10px;color:#a9c4b1;letter-spacing:2px;padding:0 12px 12px}
+.nav button{width:100%;padding:13px 14px;margin:3px 0;border:0;border-radius:9px;text-align:left;background:transparent;color:#d5e5d9;font-size:14px;cursor:pointer}
+.nav button.active,.nav button:hover{background:#286044;color:white}
+.sidebottom{position:absolute;bottom:25px;left:25px;font-size:12px;color:#b1c9b7}
+.main{
+  margin-left:245px;
+  width:calc(100% - 245px);
+  padding:30px 38px;
+  background:transparent;
+}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+h1{font-size:25px;margin:0 0 7px}
+.sub{color:var(--muted);font-size:13px}
+.pill{background:#e1f2e5;color:#247348;border-radius:20px;padding:8px 13px;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px;margin:22px 0}
+.card{
+  background:rgba(255,255,255,.91);
+  backdrop-filter:blur(8px);
+  border:1px solid #dce8d8;
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 5px 20px rgba(35,75,42,.055);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 25px rgba(35,75,42,.10);
+}
+.metric-label{font-size:12px;color:var(--muted)}
+.metric{font-size:27px;font-weight:750;margin:12px 0 5px}
+.metric-note{font-size:11px;color:var(--muted)}
+.section{font-size:16px;font-weight:700;margin:25px 0 14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#26734e}
+.dot{width:8px;height:8px;background:#35a76a;border-radius:50%}
+.page{display:none}.page.active{display:block}
+button.primary{background:var(--green2);color:white;border:0;border-radius:8px;padding:11px 17px;cursor:pointer;font-weight:600}
+button.primary:disabled{opacity:.5;cursor:not-allowed}
+input[type=file]{max-width:100%;margin:15px 0}
+.result{margin-top:17px;padding:17px;background:var(--light);border-radius:10px;display:none}
+.bar{height:9px;background:#e5eee7;border-radius:20px;overflow:hidden;margin:10px 0}
+.bar span{display:block;height:100%;background:#2d8a59;width:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{text-align:left;padding:13px 9px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+.upload{border:2px dashed #c8d9cc;border-radius:12px;padding:25px;text-align:center}
+.tagbox{display:inline-block;background:#edf4ee;color:#276443;border-radius:5px;padding:5px 8px;font-size:11px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.main{padding:22px}.sidebar{width:190px}.main{margin-left:190px;width:calc(100% - 190px)}}
+@media(max-width:620px){.sidebar{width:65px;padding:15px 6px}.brand{font-size:0;padding:10px}.brand:first-letter{font-size:23px}.tag,.sidebottom{display:none}.nav button{font-size:0;text-align:center;padding:14px 4px}.nav button:first-letter{font-size:17px}.main{margin-left:65px;width:calc(100% - 65px);padding:17px}.grid,.two{grid-template-columns:1fr}.top{align-items:flex-start;gap:10px;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand">🌿 Agro<span>Scan</span></div>
+  <div class="tag">ML OPERATIONS PLATFORM</div>
+  <nav class="nav">
+    <button class="active" onclick="showPage('overview',this)">◈ &nbsp; Overview</button>
+    <button onclick="showPage('diagnosis',this)">⌕ &nbsp; Disease Diagnosis</button>
+    <button onclick="showPage('performance',this)">▥ &nbsp; Model Performance</button>
+    <button onclick="showPage('drift',this)">⌁ &nbsp; Drift Monitor</button>
+    <button onclick="showPage('pipeline',this)">⟳ &nbsp; Pipeline Monitor</button>
+    <button onclick="showPage('registry',this)">▣ &nbsp; Model Registry</button>
+  </nav>
+  <div style="position:absolute;bottom:85px;left:20px;right:20px;padding:12px;background:#ffffff12;border-radius:10px;">
+  <label style="font-size:11px;color:#d5e5d9;">
+    Navigation width
+  </label>
+
+  <input
+    type="range"
+    id="sidebarSize"
+    min="190"
+    max="340"
+    value="245"
+    step="5"
+    style="width:100%;margin-top:10px;accent-color:#a8d6ae;cursor:pointer;"
+  >
+
+  <div id="sidebarSizeValue"
+       style="font-size:11px;color:#a8d6ae;text-align:center;">
+    245 px
+  </div>
+</div>
+  <div class="sidebottom">AgroScan MLOps<br>Model serving dashboard</div>
+</aside>
+
+<main class="main">
+<header class="top">
+  <div><h1 id="heading">Dashboard Overview</h1>
+  <div class="sub" id="description">Monitor your plant disease detection system</div></div>
+  <div class="pill">● AgroScan System</div>
+</header>
+
+
+<section class="page active" id="overview">
+
+  <!-- Welcome Banner -->
+  
+<!-- Welcome Banner -->
+<div style="
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(90deg, rgba(12,45,29,0.94), rgba(18,65,40,0.65)),
+    url('https://images.unsplash.com/photo-1592982537447-6f2a6a0b6f3c?auto=format&fit=crop&w=1600&q=85') center/cover;
+  color:white;
+  padding:38px;
+  border-radius:18px;
+  margin-bottom:22px;
+  min-height:190px;
+  box-shadow:0 8px 25px rgba(20,70,40,0.15);
+">
+  <div style="font-size:12px;letter-spacing:2px;color:#c5e8cf;">
+    AGROSCAN • MLOPS PLATFORM
+  </div>
+
+  <h2 style="font-size:30px;margin:14px 0 8px;">
+    Plant Health Intelligence
+  </h2>
+
+  <p style="color:#e0f0e4;margin:0;font-size:14px;">
+    Monitor your AI model, detect plant diseases and track your ML pipeline.
+  </p>
+
+  <div style="margin-top:22px;">
+    <span style="
+      background:rgba(255,255,255,0.18);
+      border:1px solid rgba(255,255,255,0.3);
+      padding:10px 16px;
+      border-radius:8px;
+      font-size:12px;
+      backdrop-filter:blur(8px);
+    ">
+      ● Model serving dashboard
+    </span>
+  </div>
+</div>
+
+
+  <!-- KPI Cards -->
+  <div class="grid">
+
+    <div class="card">
+      <div class="metric-label">API STATUS</div>
+      <div class="metric" id="apiStatus">Checking...</div>
+      <div class="metric-note">FastAPI backend</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">MODEL STATUS</div>
+      <div class="metric" id="modelStatus">Checking...</div>
+      <div class="metric-note">Model readiness</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">DISEASE CLASSES</div>
+      <div class="metric" id="classCount">—</div>
+      <div class="metric-note">Classification categories</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">INPUT DIMENSIONS</div>
+      <div class="metric" id="imageSize">—</div>
+      <div class="metric-note">Model image input</div>
+    </div>
+
+  </div>
+
+  <!-- System Information -->
+  <div class="two">
+
+    <div class="card">
+      <div class="section">System Health</div>
+
+      <div style="padding:14px;background:#edf6ef;border-radius:10px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#26734e;">● API Connection</div>
+        <p id="healthText" class="note">Checking backend...</p>
+      </div>
+
+      <div style="padding:14px;background:#edf6ef;border-radius:10px;">
+        <div style="font-weight:700;color:#26734e;">● Model Readiness</div>
+        <p id="readyText" class="note">Checking model...</p>
+      </div>
+
+      <button class="primary" onclick="refreshStatus()">↻ Refresh System Status</button>
+    </div>
+
+    <div class="card">
+      <div class="section">Deployed Model</div>
+
+      <p class="note">Model Version</p>
+      <strong id="version">—</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:15px 0;">
+
+      <p class="note">Confidence Threshold</p>
+      <strong id="threshold">—</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:15px 0;">
+
+      <p class="note">MLflow Registry</p>
+      <strong id="mlflow">—</strong>
+    </div>
+
+  </div>
+
+  <!-- Platform Modules -->
+  <div class="section">Platform Capabilities</div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div style="font-size:25px;">🌱</div>
+      <h3>Disease Diagnosis</h3>
+      <p class="note">AI-powered plant leaf disease classification.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:25px;">📊</div>
+      <h3>Model Analytics</h3>
+      <p class="note">Evaluation metrics and confusion matrix.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:25px;">🔍</div>
+      <h3>Drift Detection</h3>
+      <p class="note">Monitor changes in incoming image data.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:25px;">⚙️</div>
+      <h3>Pipeline Automation</h3>
+      <p class="note">Airflow workflow and model retraining paths.</p>
+    </div>
+
+  </div>
+
+</section>
+
+
+<section class="page" id="diagnosis">
+  <div class="card">
+    <div class="section">Plant Disease Detection</div>
+    <p class="note">Upload a plant leaf image to get a prediction from the deployed MobileNetV2 model.</p>
+    <div class="upload">
+      <div style="font-size:32px">🌿</div>
+      <p>Choose a plant leaf image</p>
+      <input type="file" id="imageFile" accept="image/*">
+      <br><button class="primary" id="analyze" onclick="predict()">Analyze Image</button>
+      <div id="preview"></div>
+    </div>
+    <div class="result" id="result">
+      <div class="metric-label">PREDICTED DISEASE</div>
+      <h2 id="prediction">—</h2>
+      <div class="metric-label">CONFIDENCE</div>
+      <strong id="confidence">—</strong>
+      <div class="bar"><span id="confidenceBar"></span></div>
+      <p id="message" class="note"></p>
+      <div class="section">Top predictions</div>
+      <div id="topPredictions"></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="page" id="performance">
+  <div class="grid">
+    <div class="card">
+      <div class="metric-label">VALIDATION ACCURACY</div>
+      <div class="metric">88.38%</div>
+      <div class="metric-note">Validation dataset</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">TEST ACCURACY</div>
+      <div class="metric">44.44%</div>
+      <div class="metric-note">Test dataset</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">VALIDATION MACRO F1</div>
+      <div class="metric">87.07%</div>
+      <div class="metric-note">Validation dataset</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">TEST MACRO F1</div>
+      <div class="metric">42.86%</div>
+      <div class="metric-note">Test dataset</div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <div class="section">Mean Confidence</div>
+      <p>Validation</p><strong>91.75%</strong>
+      <div class="bar"><span style="width:91.75%"></span></div>
+      <p>Test</p><strong>71.23%</strong>
+      <div class="bar"><span style="width:71.23%"></span></div>
+    </div>
+    <div class="card">
+      <div class="section">Confident Wrong Rate</div>
+      <p>Validation</p><strong>2.27%</strong>
+      <div class="bar"><span style="width:2.27%"></span></div>
+      <p>Test</p><strong>9.72%</strong>
+      <div class="bar"><span style="width:9.72%"></span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="section">Validation vs Test Accuracy</div>
+    <table>
+      <thead><tr><th>Metric</th><th>Validation</th><th>Test</th></tr></thead>
+      <tbody>
+        <tr><td>Accuracy</td><td>88.38%</td><td>44.44%</td></tr>
+        <tr><td>Mean Confidence</td><td>91.75%</td><td>71.23%</td></tr>
+        <tr><td>Macro F1</td><td>87.07%</td><td>42.86%</td></tr>
+        <tr><td>Confident Wrong Rate</td><td>2.27%</td><td>9.72%</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Source: reports/metrics.json. The difference between validation and test performance warrants further investigation.</p>
+  </div>
+
+<div class="card" style="margin-top:20px">
+  <div class="section">Model Evaluation Analytics</div>
+  <p class="note">Validation vs test dataset comparison</p>
+
+  <div style="margin-top:25px">
+
+    <div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between">
+        <strong>Accuracy</strong>
+        <span class="note">Validation: 88.38% | Test: 44.44%</span>
+      </div>
+      <div class="metric-note">Validation</div>
+      <div class="bar"><span style="width:88.38%"></span></div>
+      <div class="metric-note">Test</div>
+      <div class="bar"><span style="width:44.44%;background:#d99a45"></span></div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between">
+        <strong>Macro F1 Score</strong>
+        <span class="note">Validation: 87.07% | Test: 42.86%</span>
+      </div>
+      <div class="metric-note">Validation</div>
+      <div class="bar"><span style="width:87.07%"></span></div>
+      <div class="metric-note">Test</div>
+      <div class="bar"><span style="width:42.86%;background:#d99a45"></span></div>
+    </div>
+
+    <div>
+      <div style="display:flex;justify-content:space-between">
+        <strong>Mean Confidence</strong>
+        <span class="note">Validation: 91.75% | Test: 71.23%</span>
+      </div>
+      <div class="metric-note">Validation</div>
+      <div class="bar"><span style="width:91.75%"></span></div>
+      <div class="metric-note">Test</div>
+      <div class="bar"><span style="width:71.23%;background:#d99a45"></span></div>
+    </div>
+
+  </div>
+
+  <p class="note" style="margin-top:20px">
+    Green: Validation | Orange: Test.
+    Source: reports/metrics.json.
+  </p>
+</div>
+
+    <div class="card" style="margin-top:18px">
+    <div class="section">Confusion Matrix</div>
+    <p class="note">Comparison of actual and predicted disease classes.</p>
+    <img
+      src="confusion_matrix.png"
+      alt="Model Confusion Matrix"
+      style="width:100%; max-width:750px; display:block; margin:auto; border-radius:10px;"
+    >
+  </div>
+</section>
+
+
+<section class="page" id="drift">
+
+  <!-- Drift Alert Banner -->
+  <div style="background:linear-gradient(120deg,#7c2929,#c64b4b);color:white;padding:25px;border-radius:15px;margin-bottom:22px;">
+    <div style="font-size:12px;letter-spacing:2px;color:#ffe0e0;">DATA QUALITY ALERT</div>
+    <h2 style="margin:12px 0;font-size:26px;">⚠ Data Drift Detected</h2>
+    <p style="margin:0;color:#ffe7e7;font-size:13px;">
+      Distribution changes detected across all four monitored image features.
+    </p>
+    <div style="margin-top:17px;">
+      <span style="background:#ffffff25;padding:8px 13px;border-radius:7px;font-size:12px;">
+        4 of 4 features affected
+      </span>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid">
+
+    <div class="card">
+      <div class="metric-label">OVERALL DRIFT</div>
+      <div class="metric" style="color:#c64b4b;">Detected</div>
+      <div class="metric-note">Based on drift report</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">REFERENCE SAMPLES</div>
+      <div class="metric">400</div>
+      <div class="metric-note">Baseline samples</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">INCOMING SAMPLES</div>
+      <div class="metric">72</div>
+      <div class="metric-note">Incoming samples</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">AFFECTED FEATURES</div>
+      <div class="metric">4 / 4</div>
+      <div class="metric-note">All monitored features</div>
+    </div>
+
+  </div>
+
+  <!-- Feature Analysis -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="section">Feature-wise Drift Analysis</div>
+    <p class="note">Kolmogorov-Smirnov test statistics from reports/drift.json.</p>
+
+    <div style="margin-top:24px;">
+
+      <div style="margin-bottom:25px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <strong>Brightness</strong>
+          <span style="color:#c64b4b;font-weight:700;">Drift detected</span>
+        </div>
+        <div class="bar" style="height:12px;">
+          <span style="width:27.83%;background:#d99a45;"></span>
+        </div>
+        <div class="note">KS Statistic: 0.2783 | P-value: 0.00011436</div>
+      </div>
+
+      <div style="margin-bottom:25px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <strong>Red Mean</strong>
+          <span style="color:#c64b4b;font-weight:700;">Drift detected</span>
+        </div>
+        <div class="bar" style="height:12px;">
+          <span style="width:31.39%;background:#c64b4b;"></span>
+        </div>
+        <div class="note">KS Statistic: 0.3139 | P-value: 0.00000784</div>
+      </div>
+
+      <div style="margin-bottom:25px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <strong>Green Mean</strong>
+          <span style="color:#c64b4b;font-weight:700;">Drift detected</span>
+        </div>
+        <div class="bar" style="height:12px;">
+          <span style="width:29.56%;background:#d99a45;"></span>
+        </div>
+        <div class="note">KS Statistic: 0.2956 | P-value: 0.00003259</div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <strong>Blue Mean</strong>
+          <span style="color:#c64b4b;font-weight:700;">Drift detected</span>
+        </div>
+        <div class="bar" style="height:12px;">
+          <span style="width:39.72%;background:#c64b4b;"></span>
+        </div>
+        <div class="note">KS Statistic: 0.3972 | P-value: 0.00000000369</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Interpretation -->
+  <div class="two">
+
+    <div class="card">
+      <div class="section">Statistical Interpretation</div>
+      <div style="padding:15px;background:#fff1ed;border-radius:10px;">
+        <strong style="color:#b63e3e;">Significant distribution changes</strong>
+        <p class="note">
+          All four features have p-values below 0.05, indicating statistically
+          significant differences between reference and incoming distributions.
+        </p>
+      </div>
+      <p class="note" style="margin-top:15px;">
+        Blue Mean has the highest KS statistic (0.3972), indicating the largest
+        measured distribution difference among these features.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="section">Monitoring Summary</div>
+      <p class="note">Reference dataset</p>
+      <strong>400 samples</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:15px 0;">
+
+      <p class="note">Incoming dataset</p>
+      <strong>72 samples</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:15px 0;">
+
+      <p class="note">Report status</p>
+      <strong style="color:#c64b4b;">Drift detected</strong>
+    </div>
+
+  </div>
+
+  <p class="note" style="margin-top:18px;">
+    Source: reports/drift.json. These are recorded report results, not live
+    streaming measurements. Drift detection does not by itself establish
+    model accuracy degradation.
+  </p>
+
+</section>
+
+
+<section class="page" id="pipeline">
+
+  <!-- Pipeline Header -->
+  <div style="background:linear-gradient(120deg,#123c2b,#26734e);color:white;padding:25px;border-radius:15px;margin-bottom:22px;">
+    <div style="font-size:12px;letter-spacing:2px;color:#b9ddc3;">APACHE AIRFLOW ORCHESTRATION</div>
+    <h2 style="font-size:26px;margin:12px 0 8px;">AgroScan ML Pipeline</h2>
+    <p style="color:#d5e9da;margin:0;font-size:13px;">
+      Automated data validation, model execution, monitoring and conditional retraining.
+    </p>
+  </div>
+
+  <!-- Pipeline Metrics -->
+  <div class="grid">
+    <div class="card">
+      <div class="metric-label">DAG NAME</div>
+      <div class="metric" style="font-size:19px;">agroscan_pipeline</div>
+      <div class="metric-note">Apache Airflow</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">SCHEDULE</div>
+      <div class="metric">Weekly</div>
+      <div class="metric-note">@weekly</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">TOTAL TASKS</div>
+      <div class="metric">11</div>
+      <div class="metric-note">Including final completion task</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">EXECUTION PATHS</div>
+      <div class="metric">2</div>
+      <div class="metric-note">Healthy / Retraining</div>
+    </div>
+  </div>
+
+  <!-- Workflow Diagram -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="section">Pipeline Workflow Architecture</div>
+    <p class="note">Configured task sequence and dependencies from the Airflow DAG.</p>
+
+    <div style="max-width:650px;margin:25px auto;text-align:center;">
+
+      <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#26734e;">TASK 01</div>
+        <strong>📁 Prepare Sample Logs</strong>
+        <div class="metric-note">prepare_sample_logs</div>
+      </div>
+
+      <div style="font-size:24px;color:#26734e;padding:5px;">↓</div>
+
+      <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#26734e;">TASK 02</div>
+        <strong>Validate Data</strong>
+        <div class="metric-note">validate_data</div>
+      </div>
+
+      <div style="font-size:24px;color:#26734e;padding:5px;">↓</div>
+
+      <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#26734e;">TASK 03</div>
+        <strong>⚙ Run DVC Pipeline</strong>
+        <div class="metric-note">run_pipeline</div>
+      </div>
+
+      <div style="font-size:24px;color:#26734e;padding:5px;">↓</div>
+
+      <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#26734e;">TASK 04</div>
+        <strong>Summarize Live Logs</strong>
+        <div class="metric-note">summarize_live_logs</div>
+      </div>
+
+      <div style="font-size:24px;color:#26734e;padding:5px;">↓</div>
+
+      <div style="background:#fff4df;border:2px solid #d99a45;border-radius:10px;padding:18px;">
+        <div style="font-size:11px;color:#a66b19;">TASK 05 • DECISION</div>
+        <strong>◇ Check Thresholds</strong>
+        <div class="metric-note">check_thresholds</div>
+        <div class="metric-note">Branch based on monitoring results</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:18px;">
+
+        <!-- Healthy Branch -->
+        <div>
+          <div style="color:#26734e;font-weight:700;font-size:13px;margin-bottom:10px;">
+            ✓ HEALTHY PATH
+          </div>
+
+          <div style="font-size:22px;color:#26734e;">↓</div>
+
+          <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:15px;min-height:105px;">
+            <strong>Healthy Report</strong>
+            <div class="metric-note">healthy_report</div>
+          </div>
+
+          <div style="font-size:22px;color:#26734e;">↓</div>
+
+          <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:15px;">
+            <strong>Done</strong>
+            <div class="metric-note">Final completion</div>
+          </div>
+        </div>
+
+        <!-- Retraining Branch -->
+        <div>
+          <div style="color:#b47727;font-weight:700;font-size:13px;margin-bottom:10px;">
+            ↻ RETRAINING PATH
+          </div>
+
+          <div style="font-size:22px;color:#b47727;">↓</div>
+
+          <div style="background:#fff4df;border:1px solid #e5c78f;border-radius:10px;padding:15px;">
+            <strong>Retrain Decision</strong>
+            <div class="metric-note">retrain_decision</div>
+          </div>
+
+          <div style="font-size:22px;color:#b47727;">↓</div>
+
+          <div style="background:#fff4df;border:1px solid #e5c78f;border-radius:10px;padding:15px;">
+            <strong>Train Model</strong>
+            <div class="metric-note">train</div>
+          </div>
+
+          <div style="font-size:22px;color:#b47727;">↓</div>
+
+          <div style="background:#fff4df;border:1px solid #e5c78f;border-radius:10px;padding:15px;">
+            <strong>Evaluate Model</strong>
+            <div class="metric-note">evaluate</div>
+          </div>
+
+          <div style="font-size:22px;color:#b47727;">↓</div>
+
+          <div style="background:#fff4df;border:1px solid #e5c78f;border-radius:10px;padding:15px;">
+            <strong>Export Model</strong>
+            <div class="metric-note">export</div>
+          </div>
+
+          <div style="font-size:22px;color:#26734e;">↓</div>
+
+          <div style="background:#eaf3ed;border:1px solid #b8d4c0;border-radius:10px;padding:15px;">
+            <strong>Done</strong>
+            <div class="metric-note">Final completion</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Configuration -->
+  <div class="card">
+    <div class="section">Pipeline Configuration</div>
+
+    <table>
+      <tbody>
+        <tr><th>DAG ID</th><td>agroscan_pipeline</td></tr>
+        <tr><th>Schedule</th><td>@weekly</td></tr>
+        <tr><th>Maximum Active Runs</th><td>1</td></tr>
+        <tr><th>Catchup</th><td>Disabled</td></tr>
+        <tr><th>Retries</th><td>1</td></tr>
+        <tr><th>Retry Delay</th><td>5 minutes</td></tr>
+        <tr><th>Tags</th><td>agroscan, mlops</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note" style="margin-top:15px;">
+      Source: airflow/dags/agroscan_pipeline.py. This diagram represents
+      configured dependencies, not a live Airflow execution. Both branches
+      converge on the final done task.
+    </p>
+  </div>
+
+</section>
+
+
+
+<section class="page" id="registry">
+
+  <!-- Model Identity Banner -->
+  <div style="background:linear-gradient(120deg,#123c2b,#26734e);color:white;padding:27px;border-radius:15px;margin-bottom:22px;">
+
+    <div style="font-size:12px;letter-spacing:2px;color:#b9ddc3;">
+      MODEL MANAGEMENT • MLFLOW
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-top:15px;">
+      <div>
+        <h2 style="font-size:26px;margin:0 0 8px;">agroscan-mobilenetv2</h2>
+        <p style="color:#d5e9da;margin:0;font-size:13px;">
+          Plant disease classification model
+        </p>
+      </div>
+
+      <span style="background:#ffffff25;padding:10px 16px;border-radius:9px;font-size:13px;">
+        ● Model Ready
+      </span>
+    </div>
+  </div>
+
+  <!-- Model Information Cards -->
+  <div class="grid">
+
+    <div class="card">
+      <div class="metric-label">MODEL VERSION</div>
+      <div class="metric" id="regVersion">—</div>
+      <div class="metric-note">MLflow registry version</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">INPUT DIMENSIONS</div>
+      <div class="metric" id="regSize">—</div>
+      <div class="metric-note">Image input resolution</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">CONFIDENCE THRESHOLD</div>
+      <div class="metric" id="regThreshold">—</div>
+      <div class="metric-note">Prediction threshold</div>
+    </div>
+
+    <div class="card">
+      <div class="metric-label">OUTPUT CLASSES</div>
+      <div class="metric" id="regClassCount">—</div>
+      <div class="metric-note">Supported disease categories</div>
+    </div>
+
+  </div>
+
+  <!-- Model Details -->
+  <div class="two">
+
+    <div class="card">
+      <div class="section">Model Specifications</div>
+
+      <p class="note">Model Name</p>
+      <strong id="regName">—</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:16px 0;">
+
+      <p class="note">Model File</p>
+      <strong id="regPath" style="font-size:13px;word-break:break-word;">—</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:16px 0;">
+
+      <p class="note">Model Version</p>
+      <strong id="regVersionDetail">—</strong>
+    </div>
+
+    <div class="card">
+      <div class="section">Deployment Information</div>
+
+      <div style="background:#eaf3ed;padding:16px;border-radius:10px;">
+        <strong style="color:#26734e;">● Readiness Status</strong>
+        <p class="note" id="regStatus">Waiting for API...</p>
+      </div>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:16px 0;">
+
+      <p class="note">Serving Framework</p>
+      <strong>FastAPI</strong>
+
+      <hr style="border:0;border-top:1px solid #e4ebe5;margin:16px 0;">
+
+      <p class="note">Model Framework</p>
+      <strong>TensorFlow / Keras</strong>
+    </div>
+
+  </div>
+
+  <!-- Disease Classes -->
+  <div class="card" style="margin-top:20px;">
+    <div class="section">Supported Disease Classes</div>
+    <p class="note">Classes returned by the model readiness endpoint.</p>
+
+    <div id="regClasses" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;">
+      Loading classes...
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:18px;">
+    Model metadata is retrieved from the live FastAPI /ready endpoint.
+    MLflow version information is provided by the API configuration.
+  </p>
+
+</section>
+
+</main>
+</div>
+
+<script>
+const API = "";
+const names = {
+ overview:["Dashboard Overview","Monitor your plant disease detection system"],
+ diagnosis:["Disease Diagnosis","AI-powered plant leaf classification"],
+ performance:["Model Performance","Model configuration and evaluation"],
+ drift:["Drift Monitor","Monitor data and model changes"],
+ pipeline:["Pipeline Monitor","MLOps infrastructure overview"],
+ registry:["Model Registry","Deployed model metadata"]
+};
+
+function showPage(id,button){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+ button.classList.add("active");
+ document.getElementById("heading").textContent=names[id][0];
+ document.getElementById("description").textContent=names[id][1];
+}
+
+async function refreshStatus(){
+ const api=document.getElementById("apiStatus");
+ const model=document.getElementById("modelStatus");
+ try{
+  const h=await fetch(API+"/health");
+  const health=await h.json();
+  api.textContent=h.ok?"Online":"Offline";
+  document.getElementById("healthText").textContent=JSON.stringify(health);
+ }catch(e){
+  api.textContent="Offline";
+  document.getElementById("healthText").textContent="Could not reach API.";
+ }
+ try{
+  const r=await fetch(API+"/ready");
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.detail||"Model not ready");
+  model.textContent="Ready";
+  document.getElementById("readyText").textContent="Model loaded and accepting predictions.";
+  document.getElementById("classCount").textContent=d.classes.length;
+  document.getElementById("imageSize").textContent=d.img_size+" × "+d.img_size;
+  document.getElementById("version").textContent=d.model_version||"—";
+  document.getElementById("threshold").textContent=(d.confidence_threshold*100)+"%";
+  document.getElementById("mlflow").textContent=(d.mlflow_model_name||"—")+" / "+(d.mlflow_model_version||"—");
+  document.getElementById("regName").textContent=d.mlflow_model_name||"—";
+  document.getElementById("regVersion").textContent=d.mlflow_model_version||d.model_version||"—";
+  document.getElementById("regVersionDetail").textContent=d.mlflow_model_version||d.model_version||"—";
+  document.getElementById("regClassCount").textContent=d.classes.length;
+  document.getElementById("regStatus").textContent="Model loaded and accepting predictions.";
+  document.getElementById("regPath").textContent=d.model_path||"—";
+  document.getElementById("regSize").textContent=d.img_size+" × "+d.img_size;
+  document.getElementById("regThreshold").textContent=(d.confidence_threshold*100)+"%";
+  document.getElementById("regClasses").innerHTML=d.classes.map(c =>
+  `<span style="background:#eaf3ed;color:#26734e;padding:9px 13px;border-radius:8px;font-size:12px;font-weight:600;">${c.replaceAll("_"," ")}</span>`
+  ).join("");
+ }catch(e){
+  model.textContent="Unavailable";
+  document.getElementById("readyText").textContent=e.message;
+ }
+}
+document.getElementById("imageFile").addEventListener("change",e=>{
+ const f=e.target.files[0];
+ if(!f)return;
+ document.getElementById("preview").innerHTML="";
+ const img=document.createElement("img");
+ img.src=URL.createObjectURL(f);
+ img.style.cssText="max-width:220px;max-height:180px;margin-top:12px;border-radius:10px";
+ document.getElementById("preview").appendChild(img);
+});
+async function predict(){
+ const file=document.getElementById("imageFile").files[0];
+ if(!file){alert("Please select an image first.");return;}
+ const btn=document.getElementById("analyze");
+ btn.disabled=true;btn.textContent="Analyzing...";
+ const result=document.getElementById("result");
+ result.style.display="none";
+ try{
+  const fd=new FormData();fd.append("file",file);
+  const response=await fetch(API+"/predict",{method:"POST",body:fd});
+  const d=await response.json();
+  if(!response.ok)throw new Error(d.detail||"Prediction failed");
+  document.getElementById("prediction").textContent=d.predicted_class||"Unknown";
+  const conf=Number(d.confidence||0)*100;
+  document.getElementById("confidence").textContent=conf.toFixed(2)+"%";
+  document.getElementById("confidenceBar").style.width=Math.min(100,conf)+"%";
+  document.getElementById("message").textContent=d.message||(d.low_confidence?"Low confidence prediction":"Prediction completed");
+  const top=document.getElementById("topPredictions");
+  top.innerHTML="";
+  (d.top_k||[]).forEach(item=>{
+   const row=document.createElement("p");
+   row.className="note";
+   const label=document.createElement("strong");
+   label.textContent=item.class||item.class_name||item.label||"Class";
+   const score=Number(item.probability??item.confidence??item.score??0);
+   row.append(label,document.createTextNode(" — "+(score*100).toFixed(2)+"%"));
+   top.appendChild(row);
+  });
+  result.style.display="block";
+ }catch(e){alert("Prediction error: "+e.message);}
+ finally{btn.disabled=false;btn.textContent="Analyze Image";}
+}
+const sidebarSlider = document.getElementById("sidebarSize");
+const sidebarValue = document.getElementById("sidebarSizeValue");
+
+sidebarSlider.addEventListener("input", function(){
+  const width = this.value;
+
+  document.documentElement.style.setProperty(
+    "--sidebar-width", width + "px"
+  );
+
+  sidebarValue.textContent = width + " px";
+});
+refreshStatus();
+setInterval(refreshStatus,30000);
+</script>
+</body>
+</html>
